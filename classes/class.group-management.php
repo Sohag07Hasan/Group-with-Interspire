@@ -56,6 +56,10 @@ class UgManagement{
 		
 		//login page error message
 		add_filter('login_message', array(get_class(), 'login_message'), 10, 1);	
+		
+		
+		
+		//add_filter('login_url', array(get_class(), 'login_url'), 10, 2);
 
 		
 	//	add_action('init', array(get_class(), 'test'));
@@ -63,6 +67,10 @@ class UgManagement{
 		
 		//camel case
 		
+		
+		//mulitisite verificatin
+		add_filter('wpmu_validate_user_signup', array(get_class(), 'wpmu_validate_user_signup'), 10, 1);
+		add_action('signup_extra_fields', array(get_class(), 'show_custom_signup_message'));
 		
 		
 	}
@@ -74,6 +82,12 @@ class UgManagement{
 		if(false === $status){
 			var_dump("not exists");
 		}
+	}
+		
+	
+	
+	static function login_url($url, $redirect){
+		
 	}
 		
 	
@@ -548,7 +562,9 @@ class UgManagement{
     //prevent password reset
     static function prevent_password_reset($allow, $user_id){
     	
-    	$default_options = self::get_site_default_options();
+    	//$default_options = self::get_site_default_options();
+    	
+    	//var_dump($allow); exit;
     	   	
 		if(self::is_a_group_memeber($user_id)){
 			$allow = false;
@@ -664,6 +680,9 @@ class UgManagement{
     
     //controlling registration procedure
     static function registration_errors($errors, $sanitized_user_login, $user_email){
+    	
+    //	var_dump($errors); exit;
+    	
     	if(is_email($user_email)){
     		$em = explode('@', $user_email);
     		$domain = $em[count($em) - 1];
@@ -707,6 +726,47 @@ class UgManagement{
     	return $errors;
     }
 	
+    
+    //ms
+	static function wpmu_validate_user_signup($result){
+		
+		$user_email = $result['user_email'];
+		$errors = $result['errors'];
+		
+		if(is_email($user_email)){
+			$em = explode('@', $user_email);
+    		$domain = $em[count($em) - 1];
+    		
+    		$default_optons = self::get_site_default_options();
+    		
+    		$domains = $default_optons['default-group-domain'];
+    		$domains = preg_replace('/[ ]/', '', $domains);
+    		$domains = explode(',', $domains);
+    		
+    		if(in_array($domain, $domains)){
+    			self::$registered_user['default'] = $default_optons;
+    			add_filter('random_password', array(get_class(), 'set_group_password'), 10, 1);	
+    		}
+    		else{
+    			$errors->add('domain_unavailable', sprintf('This domain <strong>%s</strong> is unavailable. Please choose another one ( <strong>%s</strong> ) ', $domain, implode(', ', $domains)));
+    		}
+		}
+		
+		$result['errors'] = $errors;
+				
+		return $result;
+		
+	}
+    
+	
+	//ms showing error messages
+	static function show_custom_signup_message($errors){
+		if ( $errmsg = $errors->get_error_message('domain_unavailable') ) {
+			echo '<p class="error">' . $errmsg . '</p>';
+		}
+	}
+	
+    
     
     //attach some meta data to the usermeta table using default settings and other settings
     static function user_register($user_id){

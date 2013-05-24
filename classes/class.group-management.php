@@ -71,6 +71,8 @@ class UgManagement{
 		//mulitisite verificatin
 		add_filter('wpmu_validate_user_signup', array(get_class(), 'wpmu_validate_user_signup'), 10, 1);
 		add_action('signup_extra_fields', array(get_class(), 'show_custom_signup_message'));
+		add_filter('pre_user_login', array(get_class(), 'use_group_password'));
+		add_action('wpmu_activate_user', array(get_class(), 'set_default_user_meta'), 10, 3);
 		
 		
 	}
@@ -700,27 +702,7 @@ class UgManagement{
     		else{
     			$errors->add('domain_unavailable', sprintf('This domain <strong>%s</strong> is unavailable. Please choose another one ( <strong>%s</strong> ) ', $domain, implode(', ', $domains)));
     		}
-
-    		/*
-    		global $wpdb;
-    		$Ugdb = new UgDbManagement();
-
-    		$group = $Ugdb->get_group_by('domain', $domain);
-    		if($group){
-    			
-    			//filtering password
-    			add_filter('random_password', array(get_class(), 'set_group_password'), 10, 1);		
-    			
-    			self::$registered_user['group'] = $group;
-    			self::$registered_user['user'] = array('login'=>$sanitized_user_login, 'email'=>$user_email);
-    		}
-    		else{
-    			$domains = $Ugdb->any_domain_exists();    			    			
-    			if(!empty($domain)){
-    				$errors->add('domain_unavailable', sprintf('This domain <strong>%s</strong> is unavailable. Please choose another one ( <strong>%s</strong> ) ', $domain, $domains));
-    			}
-    		}
-    		*/
+    		    		
     	}
     	
     	return $errors;
@@ -743,13 +725,12 @@ class UgManagement{
     		$domains = preg_replace('/[ ]/', '', $domains);
     		$domains = explode(',', $domains);
     		
-    		if(in_array($domain, $domains)){
+    		if(!in_array($domain, $domains)){
+    			$errors->add('domain_unavailable', sprintf('This domain <strong>%s</strong> is unavailable. Please choose another one ( <strong>%s</strong> ) ', $domain, implode(', ', $domains)));
     			self::$registered_user['default'] = $default_optons;
     			add_filter('random_password', array(get_class(), 'set_group_password'), 10, 1);	
     		}
-    		else{
-    			$errors->add('domain_unavailable', sprintf('This domain <strong>%s</strong> is unavailable. Please choose another one ( <strong>%s</strong> ) ', $domain, implode(', ', $domains)));
-    		}
+    		
 		}
 		
 		$result['errors'] = $errors;
@@ -757,7 +738,34 @@ class UgManagement{
 		return $result;
 		
 	}
+	
+	
+	/*
+	 * it will use when someone activates his account from verification link (ms)
+	 * */
+	static function use_group_password($password){
+		if(is_multisite()){
+			$default_optons = self::get_site_default_options();
+			if(isset($default_optons['default-group-password']) && !empty($default_optons['default-group-password'])){
+				$password = $default_optons['default-group-password'];
+			}
+		}
+		
+		return $password;
+	}
     
+	
+	//ms attach default interspire and group list with a verified user
+	static function set_default_user_meta($info){
+		$user_id = $info['user_id'];
+		$default_optons = self::get_site_default_options();
+		
+		if($default_optons['default-interspire-list'] > 0){
+			update_user_meta($user->ID, 'interspire_list', $default_site_options['default-interspire-list']);
+    		update_user_meta($user->ID, 'default_group', 'y');
+		}
+	}
+	
 	
 	//ms showing error messages
 	static function show_custom_signup_message($errors){
@@ -772,27 +780,7 @@ class UgManagement{
     static function user_register($user_id){
     	
     	$user = get_userdata($user_id);
-    	
-    	/*
-    	
-    	if(isset(self::$registered_user['group'])){
-    		$Ugdb = new UgDbManagement();
-    		
-    		$group_meta = $Ugdb->get_group_metas(self::$registered_user['group']['ID']);  		
-    		
-    		if(!$group_meta['role']){
-    			$user->set_role($group_meta['role']);
-    		}
-	    
-	    	update_user_meta($user->ID, 'gm_group_id', self::$registered_user['group']['ID']);
-	    	
-	    	if($group_meta['group_interspire_list'] > 0){
-	    		update_user_meta($user->ID, 'interspire_list', $group_meta['group_interspire_list']);
-	    	}
-	    		    	  	   		    		
-    	}
-    	*/
-    	
+
     		if($user->caps['subscriber'] || in_array('subscriber', $user->roles)){
     			$default_site_options = self::get_site_default_options();
     			
@@ -817,18 +805,7 @@ class UgManagement{
     			$password = $default_pass;
     		}
     	}
-    	
-    	
-    	/*
-    	if(isset(self::$registered_user['group'])){
-    		$Ugdb = new UgDbManagement();
-    		$new_password = $Ugdb->get_group_meta(self::$registered_user['group']['ID'], 'group_password');
-    		
-    		if(strlen($new_password) > 0){
-    			$password = $new_password;
-    		}
-    	}
-    	 */  	
+    	    	 	
     	return $password;
     }
 	
@@ -838,11 +815,9 @@ class UgManagement{
      * apply default site settings in login page
      * */
     static function login_init(){
-    	$action = $_REQUEST['action'];
+    	$action = $_REQUEST['action'];    	
     	
-    	
-    	$default_options = self::get_site_default_options();
-    	
+    	$default_options = self::get_site_default_options();    	
     	
     	if($action == 'register'){
     	 	if ( $default_options['restrict-registration'] == 1 ) {

@@ -70,7 +70,8 @@ class UgManagement{
 		
 		//mulitisite verificatin
 		add_filter('wpmu_validate_user_signup', array(get_class(), 'wpmu_validate_user_signup'), 10, 1);
-		add_action('signup_extra_fields', array(get_class(), 'show_custom_signup_message'));
+	//	add_action('signup_extra_fields', array(get_class(), 'show_custom_signup_message'));
+	//	add_action('signup_user_init', array(get_class(), 'show_custom_signup_message'));
 		add_filter('pre_user_login', array(get_class(), 'use_group_password'));
 		add_action('wpmu_activate_user', array(get_class(), 'set_default_user_meta'), 10, 3);
 		
@@ -722,13 +723,18 @@ class UgManagement{
     		$default_optons = self::get_site_default_options();
     		
     		$domains = $default_optons['default-group-domain'];
-    		$domains = preg_replace('/[ ]/', '', $domains);
-    		$domains = explode(',', $domains);
+
+    		if(strlen($domains) > 3){
     		
-    		if(!in_array($domain, $domains)){
-    			$errors->add('domain_unavailable', sprintf('This domain <strong>%s</strong> is unavailable. Please choose another one ( <strong>%s</strong> ) ', $domain, implode(', ', $domains)));
-    			self::$registered_user['default'] = $default_optons;
-    			add_filter('random_password', array(get_class(), 'set_group_password'), 10, 1);	
+	    		$domains = preg_replace('/[ ]/', '', $domains);
+	    		$domains = explode(',', $domains);
+	    		
+	    		if(!in_array($domain, $domains)){
+	    			$errors->add('user_email', sprintf('This domain <strong>%s</strong> is unavailable. Please choose another one ( <strong>%s</strong> ) ', $domain, implode(', ', $domains)));
+	    			self::$registered_user['default'] = $default_optons;
+	    			add_filter('random_password', array(get_class(), 'set_group_password'), 10, 1);	
+	    		}
+    		
     		}
     		
 		}
@@ -744,11 +750,19 @@ class UgManagement{
 	 * it will use when someone activates his account from verification link (ms)
 	 * */
 	static function use_group_password($password){
-		if(is_multisite()){
-			$default_optons = self::get_site_default_options();
-			if(isset($default_optons['default-group-password']) && !empty($default_optons['default-group-password'])){
-				$password = $default_optons['default-group-password'];
-			}
+		if(is_multisite()){			
+			add_filter('random_password', array(get_class(), 'replace_with_default_password'), 10, 1);			
+		}
+		
+		
+	}
+	
+	
+	//replaces random password with default pass (ms)
+	static function replace_with_default_password($password){
+		$default_optons = self::get_site_default_options();
+		if(isset($default_optons['default-group-password']) && !empty($default_optons['default-group-password'])){
+			$password = $default_optons['default-group-password'];
 		}
 		
 		return $password;

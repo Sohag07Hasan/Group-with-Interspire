@@ -20,6 +20,7 @@ class InterspireScheduler{
 			add_action('init', array(get_class(), 'activate_scheduler'));
 		}
 		
+			
 
 	}
 
@@ -158,5 +159,19 @@ class InterspireScheduler{
 
 		die();
 	}
-
+	
+	
+	/*
+	 * calls on a delte a user to unsubscribe
+	 * */
+	static function unsubscribe_user($id){
+		$user = new WP_User( $id );
+		if($user){
+			$meta_data = self::get_user_specific_data($user->ID);
+			$meta_data['email'] = $user->user_email;
+			$sync = UgManagement::get_synchronizer();
+			$sync->unsubscribe_user($meta_data);
+		}
+	}
+	
 }

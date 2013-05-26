@@ -74,9 +74,12 @@ class UgManagement{
 	//	add_action('signup_user_init', array(get_class(), 'show_custom_signup_message'));
 	//	add_filter('pre_user_login', array(get_class(), 'use_group_password'));
 		add_action('wpmu_activate_user', array(get_class(), 'set_default_user_meta'), 10, 3);
-		
 		add_action('activate_header', array(get_class(), 'replace_group_password'));
+		add_action('remove_user_from_blog', array(get_class(), 'unsubscribe_the_user'));
+		add_action('wpmu_delete_user', array(get_class(), 'unsubscribe_the_user'));
 		
+		//single installation
+		add_action('delete_user', array(get_class(), 'unsubscribe_the_user'), 10);		
 		
 	}
 	
@@ -94,10 +97,19 @@ class UgManagement{
 	static function login_url($url, $redirect){
 		
 	}
-		
+
+	
+	/*
+	 * it will fire when a user is deleted from a blog, from the network (ms)
+	 * it will fire also when a user is delted from single installation
+	 * */
+	static function unsubscribe_the_user($id){
+		return InterspireScheduler::unsubscribe_user($id);
+	}
 	
 	
 	
+	//return the interspire class object
 	static function get_synchronizer(){
 		if(!class_exists('InterSpireSync')){
 			include USERGROUPMANAGMENT_DIR . '/classes/class.interspire.php';

@@ -72,8 +72,10 @@ class UgManagement{
 		add_filter('wpmu_validate_user_signup', array(get_class(), 'wpmu_validate_user_signup'), 10, 1);
 	//	add_action('signup_extra_fields', array(get_class(), 'show_custom_signup_message'));
 	//	add_action('signup_user_init', array(get_class(), 'show_custom_signup_message'));
-		add_filter('pre_user_login', array(get_class(), 'use_group_password'));
+	//	add_filter('pre_user_login', array(get_class(), 'use_group_password'));
 		add_action('wpmu_activate_user', array(get_class(), 'set_default_user_meta'), 10, 3);
+		
+		add_action('activate_header', array(get_class(), 'replace_group_password'));
 		
 		
 	}
@@ -414,18 +416,6 @@ class UgManagement{
     			$user = get_user_by( 'email', $info[0] );
     		    			
     			if($user){
-    				
-	    			if($user->caps['administrator'] || in_array('administrator', $user->roles)){
-	    				return false;
-	    			}
-    				
-    				$user->set_role($group_meta['role']);
-    				update_user_meta($user->ID, 'gm_group_id', $group['ID']);
-    				
-    				if($group_meta['group_interspire_list'] > 0){
-    					update_user_meta($user->ID, 'interspire_list', $group_meta['group_interspire_list']);
-    				}
-    				
     				return false;
     			}
     			else{
@@ -455,21 +445,8 @@ class UgManagement{
     		
     			$user = get_user_by( 'email', $info[0] );
     			
-    		//	var_dump($group_meta); die();
-    			
     			if($user){
-    				
-    				if($user->caps['administrator'] || in_array('administrator', $user->roles)){
-	    				return false;
-	    			}
-    				
-    				$user->set_role($group_meta['role']);
-    				update_user_meta($user->ID, 'gm_group_id', $group['ID']);
-    				if($group_meta['group_interspire_list'] > 0){
-    					update_user_meta($user->ID, 'interspire_list', $group_meta['group_interspire_list']);
-    				}
-    				
-    				return true;
+    				return false;	
     			}
     			else{
     				$user_id = wp_insert_user(array(
@@ -511,17 +488,6 @@ class UgManagement{
     	$user = get_user_by( 'email', $info[0] );
     		
     	if($user){
-    		
-    		if($user->caps['administrator'] || in_array('administrator', $user->roles)){
-    			return false;
-    		}
-    		
-    		$user->set_role('subscriber');
-
-    		if($defaults['default-interspire-list']){
-    			update_user_meta($user->ID, 'interspire_list', $defaults['default-interspire-list']); 
-    		}
-    		   		   				
     		return false;
     	}
     	else{
@@ -749,12 +715,18 @@ class UgManagement{
 	/*
 	 * it will use when someone activates his account from verification link (ms)
 	 * */
-	static function use_group_password($password){
+	static function use_group_password($result){
 		if(is_multisite()){			
 			add_filter('random_password', array(get_class(), 'replace_with_default_password'), 10, 1);			
 		}
-		
-		
+
+		return $result;
+	}
+	
+	
+	//hook to filter the default password
+	static function replace_group_password(){
+		add_filter('random_password', array(get_class(), 'replace_with_default_password'), 10, 1);	
 	}
 	
 	

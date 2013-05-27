@@ -56,7 +56,7 @@ class UgManagement{
 		
 		//login page error message
 		add_filter('login_message', array(get_class(), 'login_message'), 10, 1);	
-		
+		add_action('delete_user', array(get_class(), 'unsubscribe_the_user'), 10);
 		
 		
 		//add_filter('login_url', array(get_class(), 'login_url'), 10, 2);
@@ -70,18 +70,25 @@ class UgManagement{
 		
 		//mulitisite verificatin
 		add_filter('wpmu_validate_user_signup', array(get_class(), 'wpmu_validate_user_signup'), 10, 1);
-	//	add_action('signup_extra_fields', array(get_class(), 'show_custom_signup_message'));
-	//	add_action('signup_user_init', array(get_class(), 'show_custom_signup_message'));
-	//	add_filter('pre_user_login', array(get_class(), 'use_group_password'));
 		add_action('wpmu_activate_user', array(get_class(), 'set_default_user_meta'), 10, 3);
 		add_action('activate_header', array(get_class(), 'replace_group_password'));
 		add_action('remove_user_from_blog', array(get_class(), 'unsubscribe_the_user'));
 		add_action('wpmu_delete_user', array(get_class(), 'unsubscribe_the_user'));
 		
 		//single installation
-		add_action('delete_user', array(get_class(), 'unsubscribe_the_user'), 10);		
+				
 		
 	}
+	
+	
+	/*
+	 * Interspire scheduler
+	 * */
+	static function interspire_scheduler(){
+		include USERGROUPMANAGMENT_DIR . '/includes/parallel-scheduler.php';
+	}
+	
+	
 	
 	static function test(){
 		$Ugdb = new UgDbManagement();
@@ -135,6 +142,7 @@ class UgManagement{
 		add_submenu_page('user-group-management', ucwords('inter sipre default options'), 'InterSpire', 'manage_options', 'interspire-default-options', array(get_class(), 'submenu_interspire'));
 		add_submenu_page('user-group-management', ucwords('site default options'), 'Site Settings', 'manage_options', 'registration-default-options', array(get_class(), 'submenu_registration_options'));
 		add_submenu_page('user-group-management', ucwords('default user bulk import'), 'CSV Import', 'manage_options', 'default-csv-user-import', array(get_class(), 'submenu_default_csv_import'));
+		add_submenu_page('user-group-management', ucwords('Scheduler'), 'Scheduler', 'manage_options', 'scheduler', array(get_class(), 'interspire_scheduler'));
 	}
 	
 	
